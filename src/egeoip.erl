@@ -80,7 +80,7 @@ reload() ->
 reload(FileName) ->
     case new(FileName) of
         {ok, NewState} ->
-            Workers = egeoip_sup:worker_names(),
+            Workers = egeoip_cluster:worker_names(),
             [gen_server:call(W, {reload, NewState})  || W <- tuple_to_list(Workers)];
         Error ->
             Error
@@ -123,12 +123,18 @@ lookup(Address) when is_integer(Address) ->
     case whereis(egeoip) of
         undefined ->
             Worker = get_worker(Address),
+
+            %io:format("using worker: ~p", [Worker]),
+
             gen_server:call(Worker, {lookup, Address});
         Pid ->
             unregister(egeoip),
             register(egeoip_0, Pid),
             FileName = gen_server:call(Pid, filename),
-            [egeoip_0 | Workers] = tuple_to_list(egeoip_sup:worker_names()),
+            [egeoip_0 | Workers] = tuple_to_list(egeoip_cluster:worker_names()),
+
+            %io:format("spawning workers: ~p", [Workers]),
+
             Specs = egeoip_sup:worker(Workers, FileName),
             lists:map(fun(Spec) ->
                               {ok, _Pid} = supervisor:start_child(egeoip_sup, Spec)
@@ -163,7 +169,7 @@ record_fields() ->
 %% @spec filename() -> string()
 %% @doc Get the database filename currently being used by the server.
 filename() ->
-    gen_server:call(element(1, egeoip_sup:worker_names()), filename).
+    gen_server:call(element(1, egeoip_cluster:worker_names()), filename).
 
 %% gen_server callbacks
 
@@ -219,8 +225,8 @@ handle_info(Info, State) ->
 
 %% Implementation
 get_worker(Address) ->
-    element(1 + erlang:phash2(Address) band 7,
-            egeoip_sup:worker_names()).
+    element(1 + erlang:phash2(Address) band egeoip_cluster:worker_count(),
+            egeoip_cluster:worker_names()).
 
 log_error(Info) ->
     error_logger:info_report([?MODULE|Info]).
