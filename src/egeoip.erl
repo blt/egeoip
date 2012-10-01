@@ -123,18 +123,12 @@ lookup(Address) when is_integer(Address) ->
     case whereis(egeoip) of
         undefined ->
             Worker = get_worker(Address),
-
-            %io:format("using worker: ~p", [Worker]),
-
             gen_server:call(Worker, {lookup, Address});
         Pid ->
             unregister(egeoip),
             register(egeoip_0, Pid),
             FileName = gen_server:call(Pid, filename),
             [egeoip_0 | Workers] = tuple_to_list(egeoip_cluster:worker_names()),
-
-            %io:format("spawning workers: ~p", [Workers]),
-
             Specs = egeoip_sup:worker(Workers, FileName),
             lists:map(fun(Spec) ->
                               {ok, _Pid} = supervisor:start_child(egeoip_sup, Spec)

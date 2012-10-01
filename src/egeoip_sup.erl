@@ -17,35 +17,22 @@ init([]) ->
 
     init_cluster(),
 
-    io:format("init called ~p~n", [application:get_env(egeoip, dbfile)]),
+    log4erl:warn("Using dbfile in ~p", [application:get_env(egeoip, dbfile)]),
+
     File = case application:get_env(egeoip, dbfile) of
-	       {ok, Other} ->
-		   Other;
-	       _ ->
-		   city
-	   end,
+        {ok, Other} ->
+            Other;
+        _ ->
+            city
+    end,
     Processes = worker(tuple_to_list(egeoip_cluster:worker_names()), File),
     {ok, {{one_for_one, 5, 300}, Processes}}.
-
-%worker_count() ->
-%    7.
-
-%worker_names() ->
-%    {egeoip_0,
-%     egeoip_1,
-%     egeoip_2,
-%     egeoip_3,
-%     egeoip_4,
-%     egeoip_5,
-%     egeoip_6,
-%     egeoip_7}.
 
 worker([], _File) ->
     [];
 worker([Name | T], File) ->
 
-    log4erl:info("Spawing worker: ~p", [Name]),
-
+    log4erl:info("Spawing egeoip worker: ~p", [Name]),
 
     [{Name,
       {egeoip, start_link, [Name, File]},
@@ -63,8 +50,7 @@ init_cluster(NumNodes) ->
         worker_count() -> ~p.
 
         worker_names() ->
-            {egeoip_0
-    \n",
+            {egeoip_0\n",
 
     DynModuleMap = ", egeoip_~p\n",
     DynModuleEnd = "}.\n",
@@ -72,12 +58,12 @@ init_cluster(NumNodes) ->
     Nodes = lists:seq(1, NumNodes),
 
     ModuleString = lists:flatten([
-        io_lib:format(DynModuleBegin, [NumNodes]),
-        lists:map(fun(I) -> io_lib:format(DynModuleMap, [I]) end, Nodes),
-        DynModuleEnd
-    ]),
+                io_lib:format(DynModuleBegin, [NumNodes]),
+                lists:map(fun(I) -> io_lib:format(DynModuleMap, [I]) end, Nodes),
+                DynModuleEnd
+                ]),
 
-    log4erl:error("dyn module str ~p", [ModuleString]),
+    log4erl:info("dyn module str ~p", [ModuleString]),
 
     {M, B} = dynamic_compile:from_string(ModuleString),
     code:load_binary(M, "", B).
