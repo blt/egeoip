@@ -39,7 +39,7 @@ worker([Name | T], File) ->
       permanent, 5000, worker, [egeoip]} | worker(T, File)].
 
 init_cluster() ->
-    init_cluster(50).
+    init_cluster(10).
 
 init_cluster(NumNodes) ->
 
