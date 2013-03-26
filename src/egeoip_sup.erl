@@ -17,8 +17,6 @@ init([]) ->
 
     init_cluster(),
 
-    log4erl:warn("Using dbfile in ~p", [application:get_env(egeoip, dbfile)]),
-
     File = case application:get_env(egeoip, dbfile) of
         {ok, Other} ->
             Other;
@@ -31,8 +29,6 @@ init([]) ->
 worker([], _File) ->
     [];
 worker([Name | T], File) ->
-
-    log4erl:info("Spawing egeoip worker: ~p", [Name]),
 
     [{Name,
       {egeoip, start_link, [Name, File]},
@@ -62,8 +58,6 @@ init_cluster(NumNodes) ->
                 lists:map(fun(I) -> io_lib:format(DynModuleMap, [I]) end, Nodes),
                 DynModuleEnd
                 ]),
-
-    log4erl:info("dyn module str ~p", [ModuleString]),
 
     {M, B} = dynamic_compile:from_string(ModuleString),
     code:load_binary(M, "", B).
