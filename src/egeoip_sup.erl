@@ -18,11 +18,12 @@ init([]) ->
     init_cluster(),
 
     File = case application:get_env(egeoip, dbfile) of
-        {ok, Other} ->
-            Other;
-        _ ->
-            city
-    end,
+               {ok, {Application, DBName}} ->
+                   PrivDir = code:priv_dir(Application),
+                   filename:join([PrivDir, DBName]);
+               _ ->
+                   city
+           end,
     Processes = worker(tuple_to_list(egeoip_cluster:worker_names()), File),
     {ok, {{one_for_one, 5, 300}, Processes}}.
 
@@ -61,4 +62,3 @@ init_cluster(NumNodes) ->
 
     {M, B} = dynamic_compile:from_string(ModuleString),
     code:load_binary(M, "", B).
-
